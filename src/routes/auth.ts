@@ -1,14 +1,10 @@
-// src/routes/authRoutes.ts
-import { Router } from "express";
-import { authController } from "../controllers/authController";
-import { authMiddleware } from "../middleware/authMiddleware";
+import { Router } from 'express';
+import * as authController from '../controllers/authController';
 
 const router = Router();
 
-router.post("/register", authController.register);
-router.post("/login", authController.login);
-
-// пример защищённого тестового роута
-router.get("/me", authMiddleware, authController.me);
+router.post('/register', authController.register);
+router.post('/login', authController.login);
+router.get('/me', authController.me);
 
 export default router;

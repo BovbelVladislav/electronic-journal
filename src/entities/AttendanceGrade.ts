@@ -1,30 +1,27 @@
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn } from 'typeorm';
 
-@Entity({ name: 'submissions' })
-export class Submission {
+@Entity({ name: 'attendance_grades' })
+export class AttendanceGrade {
   @PrimaryGeneratedColumn()
   id!: number;
 
   @Column()
-  assignment_id!: number;
+  class_id!: number;
 
   @Column()
   student_id!: number;
 
-  @Column({ type: 'datetime', nullable: true })
-  submitted_at?: Date;
+  @Column({ type: 'date' })
+  date!: string;
 
   @Column({ type: 'text', nullable: true })
-  file_path?: string;
-
-  @Column({ type: 'text', nullable: true })
-  content?: string;
+  attendance?: 'present' | 'absent' | 'late';
 
   @Column({ type: 'integer', nullable: true })
   grade?: number;
 
-  @Column({ type: 'text', default: 'pending' })
-  status!: 'pending' | 'submitted' | 'graded' | 'rejected';
+  @Column({ type: 'text', nullable: true })
+  comments?: string;
 
   @CreateDateColumn({ type: 'datetime', default: () => 'CURRENT_TIMESTAMP' })
   created_at!: Date;
@@ -32,4 +29,4 @@ export class Submission {
   @UpdateDateColumn({ type: 'datetime', default: () => 'CURRENT_TIMESTAMP' })
   updated_at!: Date;
 }
-export default Submission;
+export default AttendanceGrade;

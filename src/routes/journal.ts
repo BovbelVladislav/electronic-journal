@@ -1,10 +1,9 @@
-import { Router } from "express";
-import { authMiddleware } from "../middleware/authMiddleware.ts";
+import { Router } from 'express';
+import { authMiddleware } from '../middleware/authMiddleware';
+import * as journalController from '../controllers/journalController';
 
 const router = Router();
 
-router.get("/", authMiddleware, (req, res) => {
-  res.json({ message: "Journal API placeholder" });
-});
+router.get('/', authMiddleware, journalController.getJournal);
 
 export default router;

@@ -1,30 +1,24 @@
+import { AppDataSource } from '../database/data-source';
+import { Subject } from '../entities/Subject';
+import { User } from '../entities/User';
 
-import { AppDataSource } from "../database/data-source";
-import { Subject } from "../entities/Subject";
-import { User } from "../entities/User";
+export const createSubject = async (payload: { name: string; description?: string; teacherId: number }) => {
+  const repo = AppDataSource.getRepository(Subject);
+  const userRepo = AppDataSource.getRepository(User);
 
-export const subjectService = {
-  async getByTeacher(teacherId: number) {
-    return AppDataSource.getRepository(Subject).find({
-      where: { teacher: { id: teacherId } },
-      relations: ["teacher"]
-    });
-  },
+  const teacher = await userRepo.findOneBy({ id: payload.teacherId });
+  if (!teacher) throw new Error('Teacher not found');
 
-  async getById(id: number) {
-    return AppDataSource.getRepository(Subject).findOne({
-      where: { id },
-      relations: ["teacher"]
-    });
-  },
+  const subject = repo.create({
+    name: payload.name,
+    description: payload.description ?? null,
+    teacher
+  });
 
-  async create(name: string, teacher: User) {
-    const repo = AppDataSource.getRepository(Subject);
-    const subject = repo.create({ name, teacher });
-    return repo.save(subject);
-  },
+  return repo.save(subject);
+};
 
-  async delete(id: number) {
-    return AppDataSource.getRepository(Subject).delete(id);
-  }
+export const listSubjects = async () => {
+  const repo = AppDataSource.getRepository(Subject);
+  return repo.find({ relations: ['teacher'] });
 };

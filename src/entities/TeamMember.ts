@@ -1,17 +1,20 @@
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn } from 'typeorm';
 
-@Entity({ name: 'groups' })
-export class Group {
+@Entity({ name: 'team_members' })
+export class TeamMember {
   @PrimaryGeneratedColumn()
   id!: number;
 
-  @Column({ unique: true })
-  name!: string;
+  @Column()
+  assignment_id!: number;
 
-  @Column({ type: 'text', nullable: true })
-  description?: string;
+  @Column()
+  student_id!: number;
+
+  @Column({ nullable: true })
+  submission_id?: number;
 
   @CreateDateColumn({ type: 'datetime', default: () => 'CURRENT_TIMESTAMP' })
   created_at!: Date;
 }
-export default Group;
+export default TeamMember;

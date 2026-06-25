@@ -1,74 +1,76 @@
 import { Request, Response } from 'express';
-import { attendanceService } from '../services/attendanceService';
-import { AttendanceStatus } from '../types';
+import { AppDataSource } from '../database/data-source';
+import { AttendanceGrade } from '../entities/AttendanceGrade';
+import { Lesson } from '../entities/Lesson';
+import { User } from '../entities/User';
 
-export class AttendanceController {
-  async recordAttendance(req: Request, res: Response) {
-    try {
-      const { classId, studentId, date, status, comments } = req.body;
+export const markAttendance = async (req: Request, res: Response) => {
+  try {
+    const { classId, studentId, date, attendance } = req.body;
+    if (!classId || !studentId || !date || !attendance) return res.status(400).json({ message: 'Missing fields' });
 
-      const attendance = await attendanceService.recordAttendance(
-        classId,
-        studentId,
-        new Date(date),
-        status as AttendanceStatus,
-        comments
-      );
+    const lessonRepo = AppDataSource.getRepository(Lesson);
+    const lesson = await lessonRepo.findOneBy({ id: Number(classId) });
+    if (!lesson) return res.status(404).json({ message: 'Class not found' });
 
-      res.json(attendance);
-    } catch (error: any) {
-      res.status(400).json({ error: error.message });
+    const userRepo = AppDataSource.getRepository(User);
+    const student = await userRepo.findOneBy({ id: Number(studentId) });
+    if (!student) return res.status(404).json({ message: 'Student not found' });
+
+    const repo = AppDataSource.getRepository(AttendanceGrade);
+    const existing = await repo.findOneBy({ classId: Number(classId), student: { id: student.id } as any, date });
+    if (existing) {
+      existing.attendance = attendance;
+      await repo.save(existing);
+      return res.json(existing);
     }
+
+    const ag = repo.create({
+      classId: Number(classId),
+      lesson,
+      student,
+      date,
+      attendance
+    });
+
+    await repo.save(ag);
+    return res.status(201).json(ag);
+  } catch (err) {
+    console.error('markAttendance error', err);
+    return res.status(500).json({ message: 'Internal server error' });
   }
+};
 
-  async setGrade(req: Request, res: Response) {
-    try {
-      const { classId, studentId, date, grade, comments } = req.body;
+export const addGrade = async (req: Request, res: Response) => {
+  try {
+    const { classId, studentId, date, grade } = req.body;
+    if (!classId || !studentId || !date || grade === undefined) return res.status(400).json({ message: 'Missing fields' });
 
-      const attendance = await attendanceService.setGrade(
-        classId,
-        studentId,
-        new Date(date),
-        grade,
-        comments
-      );
+    const repo = AppDataSource.getRepository(AttendanceGrade);
+    const existing = await repo.findOneBy({ classId: Number(classId), student: { id: Number(studentId) } as any, date });
+    if (!existing) return res.status(404).json({ message: 'Attendance record not found' });
 
-      res.json(attendance);
-    } catch (error: any) {
-      res.status(400).json({ error: error.message });
-    }
+    existing.grade = Number(grade);
+    await repo.save(existing);
+    return res.json(existing);
+  } catch (err) {
+    console.error('addGrade error', err);
+    return res.status(500).json({ message: 'Internal server error' });
   }
+};
 
-  async getStudentGrades(req: Request, res: Response) {
-    try {
-      const { studentId } = req.params;
-      const { subjectId } = req.query;
-
-      const grades = await attendanceService.getStudentGrades(
-        parseInt(studentId),
-        subjectId ? parseInt(subjectId as string) : undefined
-      );
-
-      res.json(grades);
-    } catch (error: any) {
-      res.status(500).json({ error: error.message });
-    }
+export const getClassAttendance = async (req: Request, res: Response) => {
+  try {
+    const classId = Number(req.params.classId);
+    const date = req.params.date;
+    const repo = AppDataSource.getRepository(AttendanceGrade);
+    const rows = await repo.find({
+      where: { classId, date },
+      relations: ['student']
+    });
+    return res.json(rows);
+  } catch (err) {
+    console.error('getClassAttendance error', err);
+    return res.status(500).json({ message: 'Internal server error' });
   }
-
-  async getClassAttendance(req: Request, res: Response) {
-    try {
-      const { classId, date } = req.params;
-
-      const attendance = await attendanceService.getClassAttendance(
-        parseInt(classId),
-        new Date(date)
-      );
-
-      res.json(attendance);
-    } catch (error: any) {
-      res.status(500).json({ error: error.message });
-    }
-  }
-}
-
-export const attendanceController = new AttendanceController();
+};

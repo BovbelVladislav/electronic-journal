@@ -1,50 +1,24 @@
-import pool from '../database/pool';
+import { AppDataSource } from '../database/data-source';
+import { Comment } from '../entities/Comment';
+import { Submission } from '../entities/Submission';
+import { User } from '../entities/User';
 
-export interface Comment {
-  id: number;
-  submission_id: number;
-  author_id: number;
-  content: string;
-  created_at: Date;
-  updated_at: Date;
-}
+export const addComment = async (submissionId: number, authorId: number, content: string) => {
+  const submissionRepo = AppDataSource.getRepository(Submission);
+  const userRepo = AppDataSource.getRepository(User);
+  const commentRepo = AppDataSource.getRepository(Comment);
 
-export class CommentService {
-  async addComment(submissionId: number, authorId: number, content: string): Promise<Comment> {
-    const result = await pool.query(
-      `INSERT INTO comments (submission_id, author_id, content)
-       VALUES ($1, $2, $3)
-       RETURNING *`,
-      [submissionId, authorId, content]
-    );
+  const submission = await submissionRepo.findOneBy({ id: submissionId });
+  if (!submission) throw new Error('Submission not found');
 
-    return result.rows[0];
-  }
+  const author = await userRepo.findOneBy({ id: authorId });
+  if (!author) throw new Error('Author not found');
 
-  async getSubmissionComments(submissionId: number): Promise<Comment[]> {
-    const result = await pool.query(
-      `SELECT * FROM comments WHERE submission_id = $1 ORDER BY created_at ASC`,
-      [submissionId]
-    );
+  const comment = commentRepo.create({
+    submission,
+    author,
+    content
+  });
 
-    return result.rows;
-  }
-
-  async deleteComment(commentId: number): Promise<boolean> {
-    const result = await pool.query('DELETE FROM comments WHERE id = $1', [commentId]);
-    return result.rowCount! > 0;
-  }
-
-  async updateComment(commentId: number, content: string): Promise<Comment> {
-    const result = await pool.query(
-      `UPDATE comments SET content = $1, updated_at = CURRENT_TIMESTAMP
-       WHERE id = $2
-       RETURNING *`,
-      [content, commentId]
-    );
-
-    return result.rows[0];
-  }
-}
-
-export const commentService = new CommentService();
+  return commentRepo.save(comment);
+};

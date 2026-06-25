@@ -1,18 +1,35 @@
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne } from "typeorm";
-import { Lesson } from "./Lesson";
-import { User } from "./User";
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  ManyToOne,
+  CreateDateColumn,
+  UpdateDateColumn,
+  Index
+} from 'typeorm';
+import { Lesson } from './Lesson';
+import { User } from './User';
 
-@Entity()
+@Entity({ name: 'grades' })
 export class Grade {
   @PrimaryGeneratedColumn()
   id!: number;
-
-  @Column()
-  value!: number; // 1–5 или 0–100 — потом решим
 
   @ManyToOne(() => Lesson, lesson => lesson.grades, { nullable: false })
   lesson!: Lesson;
 
   @ManyToOne(() => User, user => user.grades, { nullable: false })
   student!: User;
+
+  @Column({ type: 'int' })
+  value!: number;
+
+  @Column({ type: 'text', nullable: true })
+  comment?: string;
+
+  @CreateDateColumn({ name: 'created_at' })
+  createdAt!: Date;
+
+  @UpdateDateColumn({ name: 'updated_at' })
+  updatedAt!: Date;
 }

@@ -1,18 +1,26 @@
 // src/index.ts
-import app from "./app";
-import { AppDataSource } from "./database/data-source";
+import 'reflect-metadata';
+import express from 'express';
+import dotenv from 'dotenv';
+import AppDataSource from './database/data-source'; // <- проверь этот путь и экспорт
 
-const PORT = process.env.PORT ? Number(process.env.PORT) : 4000;
+dotenv.config();
+
+const app = express();
+app.use(express.json());
+
+import routes from './routes';
+app.use('/api', routes);
+
+const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 4000;
 
 async function start() {
   try {
-    await AppDataSource.initialize();
-    console.log("Connected to PostgreSQL");
-    app.listen(PORT, () => {
-      console.log(`Server started on port ${PORT}`);
-    });
+    await AppDataSource.initialize(); // здесь AppDataSource должен быть объектом DataSource
+    console.log('DataSource initialized');
+    app.listen(PORT, () => console.log(`Server listening on ${PORT}`));
   } catch (err) {
-    console.error("Database connection error:", err);
+    console.error('Failed to initialize DataSource', err);
     process.exit(1);
   }
 }

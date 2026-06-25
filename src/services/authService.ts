@@ -1,50 +1,23 @@
-import pool from '../database/pool';
-import bcrypt from 'bcryptjs';
+// src/services/authService.ts
 import jwt from 'jsonwebtoken';
-import { User, JWTPayload } from '../types';
+import bcrypt from 'bcryptjs';
+import { User } from '../entities/User';
 
-export class AuthService {
-  async register(email: string, password: string, firstName: string, lastName: string, role: string = 'student'): Promise<User> {
-    const hashedPassword = await bcrypt.hash(password, 10);
+const JWT_SECRET = process.env.JWT_SECRET || 'change_this_secret';
+const JWT_EXPIRES = process.env.JWT_EXPIRES || '1h';
 
-    const result = await pool.query(
-      `INSERT INTO users (email, password_hash, first_name, last_name, role)
-       VALUES ($1, $2, $3, $4, $5)
-       RETURNING id, email, first_name, last_name, role, created_at, updated_at`,
-      [email, hashedPassword, firstName, lastName, role]
-    );
+export const createTokenForUser = (user: User): string => {
+  const payload = { userId: user.id, role: user.role };
+  // Приводим sign к any, чтобы избежать проблем с типами @types/jsonwebtoken
+  const signAny: any = jwt.sign;
+  const token = signAny(payload, JWT_SECRET as any, { expiresIn: JWT_EXPIRES as any });
+  return token as string;
+};
 
-    return result.rows[0];
-  }
+export const verifyPassword = async (plain: string, hash: string) => {
+  return bcrypt.compare(plain, hash);
+};
 
-  async login(email: string, password: string): Promise<{ user: User; token: string }> {
-    const result = await pool.query('SELECT * FROM users WHERE email = $1', [email]);
-
-    if (result.rows.length === 0) {
-      throw new Error('User not found');
-    }
-
-    const user = result.rows[0];
-    const passwordMatch = await bcrypt.compare(password, user.password_hash);
-
-    if (!passwordMatch) {
-      throw new Error('Invalid password');
-    }
-
-    const token = jwt.sign(
-      { id: user.id, email: user.email, role: user.role } as JWTPayload,
-      process.env.JWT_SECRET!,
-      { expiresIn: process.env.JWT_EXPIRES_IN }
-    );
-
-    delete user.password_hash;
-    return { user, token };
-  }
-
-  async getUserById(id: number): Promise<User | null> {
-    const result = await pool.query('SELECT id, email, first_name, last_name, role, created_at, updated_at FROM users WHERE id = $1', [id]);
-    return result.rows[0] || null;
-  }
-}
-
-export const authService = new AuthService();
+export const hashPassword = async (plain: string) => {
+  return bcrypt.hash(plain, 10);
+};

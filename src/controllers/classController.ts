@@ -1,77 +1,58 @@
 import { Request, Response } from 'express';
-import { classService } from '../services/classService';
+import * as classService from '../services/lessonService';
 
-export class ClassController {
-  async createClass(req: Request, res: Response) {
-    try {
-      const { subjectId, groupId, teacherId, startTime, endTime, dayOfWeek, room } = req.body;
+export const createClass = async (req: Request, res: Response) => {
+  try {
+    const user = req.user;
+    if (!user) return res.status(401).json({ message: 'Unauthorized' });
 
-      const classItem = await classService.createClass(
-        subjectId,
-        groupId,
-        teacherId,
-        startTime,
-        endTime,
-        dayOfWeek,
-        room
-      );
+    const payload = {
+      subjectId: Number(req.body.subjectId),
+      groupId: Number(req.body.groupId),
+      teacherId: Number(req.body.teacherId),
+      startTime: req.body.startTime,
+      endTime: req.body.endTime,
+      dayOfWeek: req.body.dayOfWeek ? Number(req.body.dayOfWeek) : undefined,
+      room: req.body.room
+    };
 
-      res.status(201).json(classItem);
-    } catch (error: any) {
-      res.status(400).json({ error: error.message });
-    }
+    const lesson = await classService.createLesson(payload);
+    return res.status(201).json(lesson);
+  } catch (err) {
+    console.error('createClass error', err);
+    return res.status(500).json({ message: 'Internal server error' });
   }
+};
 
-  async getTeacherClasses(req: Request, res: Response) {
-    try {
-      if (!req.user) {
-        return res.status(401).json({ error: 'No user' });
-      }
-
-      const classes = await classService.getTeacherClasses(req.user.id);
-      res.json(classes);
-    } catch (error: any) {
-      res.status(500).json({ error: error.message });
-    }
+export const getTeacherClasses = async (req: Request, res: Response) => {
+  try {
+    if (!req.user) return res.status(401).json({ message: 'Unauthorized' });
+    const classes = await classService.getTeacherClasses(Number(req.user.id));
+    return res.json(classes);
+  } catch (err) {
+    console.error('getTeacherClasses error', err);
+    return res.status(500).json({ message: 'Internal server error' });
   }
+};
 
-  async getStudentClasses(req: Request, res: Response) {
-    try {
-      if (!req.user) {
-        return res.status(401).json({ error: 'No user' });
-      }
-
-      const classes = await classService.getStudentClasses(req.user.id);
-      res.json(classes);
-    } catch (error: any) {
-      res.status(500).json({ error: error.message });
-    }
+export const getStudentClasses = async (req: Request, res: Response) => {
+  try {
+    if (!req.user) return res.status(401).json({ message: 'Unauthorized' });
+    const classes = await classService.getStudentClasses(Number(req.user.id));
+    return res.json(classes);
+  } catch (err) {
+    console.error('getStudentClasses error', err);
+    return res.status(500).json({ message: 'Internal server error' });
   }
+};
 
-  async getGroupClasses(req: Request, res: Response) {
-    try {
-      const { groupId } = req.params;
-      const classes = await classService.getGroupClasses(parseInt(groupId));
-      res.json(classes);
-    } catch (error: any) {
-      res.status(500).json({ error: error.message });
-    }
+export const deleteClass = async (req: Request, res: Response) => {
+  try {
+    const classId = Number(req.params.classId);
+    await classService.deleteLesson(classId);
+    return res.json({ success: true });
+  } catch (err) {
+    console.error('deleteClass error', err);
+    return res.status(500).json({ message: 'Internal server error' });
   }
-
-  async deleteClass(req: Request, res: Response) {
-    try {
-      const { classId } = req.params;
-      const success = await classService.deleteClass(parseInt(classId));
-
-      if (success) {
-        res.json({ message: 'Class deleted' });
-      } else {
-        res.status(404).json({ error: 'Class not found' });
-      }
-    } catch (error: any) {
-      res.status(500).json({ error: error.message });
-    }
-  }
-}
-
-export const classController = new ClassController();
+};

@@ -1,12 +1,9 @@
-import { Router } from "express";
-import { lessonController } from "../controllers/lessonController";
-import { authMiddleware } from "../middleware/authMiddleware";
+import { Router } from 'express';
+import { authMiddleware, roleMiddleware } from '../middleware/authMiddleware';
+import * as lessonController from '../controllers/lessonController';
 
 const router = Router();
 
-router.get("/subject/:subjectId", authMiddleware, lessonController.getBySubject);
-router.get("/:id", authMiddleware, lessonController.getOne);
-router.post("/", authMiddleware, lessonController.create);
-router.delete("/:id", authMiddleware, lessonController.delete);
+router.post('/', authMiddleware, roleMiddleware(['teacher']), lessonController.create);
 
 export default router;

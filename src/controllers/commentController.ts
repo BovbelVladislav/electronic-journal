@@ -1,58 +1,17 @@
 import { Request, Response } from 'express';
-import { commentService } from '../services/commentService';
+import * as commentService from '../services/commentService';
 
-export class CommentController {
-  async addComment(req: Request, res: Response) {
-    try {
-      if (!req.user) {
-        return res.status(401).json({ error: 'No user' });
-      }
+export const addComment = async (req: Request, res: Response) => {
+  try {
+    if (!req.user) return res.status(401).json({ message: 'Unauthorized' });
+    const submissionId = Number(req.body.submissionId);
+    const content = req.body.content;
+    if (!submissionId || !content) return res.status(400).json({ message: 'submissionId and content required' });
 
-      const { submissionId, content } = req.body;
-      const comment = await commentService.addComment(submissionId, req.user.id, content);
-
-      res.status(201).json(comment);
-    } catch (error: any) {
-      res.status(400).json({ error: error.message });
-    }
+    const comment = await commentService.addComment(submissionId, Number(req.user.id), content);
+    return res.status(201).json(comment);
+  } catch (err) {
+    console.error('addComment error', err);
+    return res.status(500).json({ message: 'Internal server error' });
   }
-
-  async getSubmissionComments(req: Request, res: Response) {
-    try {
-      const { submissionId } = req.params;
-      const comments = await commentService.getSubmissionComments(parseInt(submissionId));
-      res.json(comments);
-    } catch (error: any) {
-      res.status(500).json({ error: error.message });
-    }
-  }
-
-  async deleteComment(req: Request, res: Response) {
-    try {
-      const { commentId } = req.params;
-      const success = await commentService.deleteComment(parseInt(commentId));
-
-      if (success) {
-        res.json({ message: 'Comment deleted' });
-      } else {
-        res.status(404).json({ error: 'Comment not found' });
-      }
-    } catch (error: any) {
-      res.status(500).json({ error: error.message });
-    }
-  }
-
-  async updateComment(req: Request, res: Response) {
-    try {
-      const { commentId } = req.params;
-      const { content } = req.body;
-      const comment = await commentService.updateComment(parseInt(commentId), content);
-
-      res.json(comment);
-    } catch (error: any) {
-      res.status(400).json({ error: error.message });
-    }
-  }
-}
-
-export const commentController = new CommentController();
+};

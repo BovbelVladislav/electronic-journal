@@ -1,8 +1,6 @@
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, OneToMany } from "typeorm";
-import { User } from "./User";
-import { Lesson } from "./Lesson";
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn } from 'typeorm';
 
-@Entity()
+@Entity({ name: 'subjects' })
 export class Subject {
   @PrimaryGeneratedColumn()
   id!: number;
@@ -10,9 +8,10 @@ export class Subject {
   @Column()
   name!: string;
 
-  @ManyToOne(() => User, user => user.subjects, { nullable: false })
-  teacher!: User;
+  @Column({ type: 'text', nullable: true })
+  description?: string;
 
-  @OneToMany(() => Lesson, lesson => lesson.subject)
-  lessons!: Lesson[];
+  @CreateDateColumn({ type: 'datetime', default: () => 'CURRENT_TIMESTAMP' })
+  created_at!: Date;
 }
+export default Subject;

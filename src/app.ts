@@ -3,6 +3,8 @@ import "reflect-metadata";
 import express from "express";
 import bodyParser from "body-parser";
 import { AppDataSource } from "./database/data-source";
+import 'reflect-metadata';
+
 
 // Роуты (если у тебя нет реальных роутов — эти заглушки безопасны)
 import subjectRouter from "./routes/subjectRoutes";

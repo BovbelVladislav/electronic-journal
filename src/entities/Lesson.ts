@@ -1,23 +1,32 @@
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne } from "typeorm";
-import { Subject } from "./Subject";
-import { OneToMany } from "typeorm";
-import { Grade } from "./Grade";
-import { LabWork } from "./LabWork";
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn } from 'typeorm';
 
-
-@Entity()
+@Entity({ name: 'classes' })
 export class Lesson {
   @PrimaryGeneratedColumn()
   id!: number;
 
   @Column()
-  date!: string;
+  subject_id!: number;
 
-  @ManyToOne(() => Subject, subject => subject.lessons)
-  subject!: Subject;
-  @OneToMany(() => Grade, grade => grade.lesson)
-grades!: Grade[];
-@OneToMany(() => LabWork, lab => lab.lesson)
-labWorks!: LabWork[];
+  @Column()
+  group_id!: number;
 
+  @Column()
+  teacher_id!: number;
+
+  @Column({ type: 'time' })
+  start_time!: string;
+
+  @Column({ type: 'time' })
+  end_time!: string;
+
+  @Column()
+  day_of_week!: number;
+
+  @Column({ nullable: true })
+  room?: string;
+
+  @CreateDateColumn({ type: 'datetime', default: () => 'CURRENT_TIMESTAMP' })
+  created_at!: Date;
 }
+export default Lesson;

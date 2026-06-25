@@ -1,112 +1,67 @@
 import { Request, Response } from 'express';
-import { submissionService } from '../services/submissionService';
-import multer from 'multer';
-import path from 'path';
+import { AppDataSource } from '../database/data-source';
+import { Submission } from '../entities/Submission';
+import { Assignment } from '../entities/Assignment';
+import { User } from '../entities/User';
+import { LabWork } from '../entities/LabWork';
 
-export class SubmissionController {
-  async createAssignment(req: Request, res: Response) {
-    try {
-      const { subjectId, title, description, type, deadline, isTeamWork } = req.body;
+// Если используете multer, типы доступны через Express.Multer.File
+// В этом контроллере предполагается, что middleware multer уже применён в роуте.
 
-      const assignment = await submissionService.createAssignment(
-        subjectId,
-        title,
-        description,
-        type,
-        deadline ? new Date(deadline) : undefined,
-        isTeamWork
-      );
+export const createSubmission = async (req: Request, res: Response) => {
+  const submissionRepo = AppDataSource.getRepository(Submission);
+  const assignmentRepo = AppDataSource.getRepository(Assignment);
+  const userRepo = AppDataSource.getRepository(User);
 
-      res.status(201).json(assignment);
-    } catch (error: any) {
-      res.status(400).json({ error: error.message });
+  try {
+    const { assignmentId, content, labWorkId } = req.body;
+    const assignment = await assignmentRepo.findOneBy({ id: Number(assignmentId) });
+    if (!assignment) return res.status(404).json({ message: 'Assignment not found' });
+
+    // Пример: userId берём из req.user (предполагается auth middleware)
+    const userId = (req as any).user?.id;
+    if (!userId) return res.status(401).json({ message: 'Unauthorized' });
+
+    const student = await userRepo.findOneBy({ id: Number(userId) });
+    if (!student) return res.status(404).json({ message: 'Student not found' });
+
+    let filePath: string | undefined;
+    if ((req as any).file) {
+      const file = (req.file as Express.Multer.File);
+      filePath = file.path;
     }
+
+    const submission = submissionRepo.create({
+      assignment,
+      student,
+      content: content ?? null,
+      filePath: filePath ?? null,
+      submittedAt: new Date(),
+      status: 'submitted',
+      // если есть связь с labWork
+      labWork: labWorkId ? (await AppDataSource.getRepository(LabWork).findOneBy({ id: Number(labWorkId) })) : undefined
+    });
+
+    await submissionRepo.save(submission);
+    return res.status(201).json(submission);
+  } catch (err) {
+    console.error('createSubmission error', err);
+    return res.status(500).json({ message: 'Internal server error' });
   }
+};
 
-  async submitAssignment(req: Request, res: Response) {
-    try {
-      const { assignmentId } = req.params;
-      const { content } = req.body;
-
-      let filePath: string | undefined;
-      if (req.file) {
-        filePath = req.file.path;
-      }
-
-      if (!req.user) {
-        return res.status(401).json({ error: 'No user' });
-      }
-
-      const submission = await submissionService.submitAssignment(
-        parseInt(assignmentId),
-        req.user.id,
-        filePath,
-        content
-      );
-
-      res.status(201).json(submission);
-    } catch (error: any) {
-      res.status(400).json({ error: error.message });
-    }
+export const getSubmission = async (req: Request, res: Response) => {
+  const submissionRepo = AppDataSource.getRepository(Submission);
+  try {
+    const id = Number(req.params.id);
+    const submission = await submissionRepo.findOne({
+      where: { id },
+      relations: ['assignment', 'student', 'labWork']
+    });
+    if (!submission) return res.status(404).json({ message: 'Not found' });
+    return res.json(submission);
+  } catch (err) {
+    console.error('getSubmission error', err);
+    return res.status(500).json({ message: 'Internal server error' });
   }
-
-  async gradeSubmission(req: Request, res: Response) {
-    try {
-      const { submissionId } = req.params;
-      const { grade, comments } = req.body;
-
-      const submission = await submissionService.gradeSubmission(
-        parseInt(submissionId),
-        grade,
-        comments
-      );
-
-      res.json(submission);
-    } catch (error: any) {
-      res.status(400).json({ error: error.message });
-    }
-  }
-
-  async getAssignmentSubmissions(req: Request, res: Response) {
-    try {
-      const { assignmentId } = req.params;
-
-      const submissions = await submissionService.getAssignmentSubmissions(
-        parseInt(assignmentId)
-      );
-
-      res.json(submissions);
-    } catch (error: any) {
-      res.status(500).json({ error: error.message });
-    }
-  }
-
-  async getStudentSubmissions(req: Request, res: Response) {
-    try {
-      if (!req.user) {
-        return res.status(401).json({ error: 'No user' });
-      }
-
-      const submissions = await submissionService.getStudentSubmissions(req.user.id);
-      res.json(submissions);
-    } catch (error: any) {
-      res.status(500).json({ error: error.message });
-    }
-  }
-
-  async getSubjectAssignments(req: Request, res: Response) {
-    try {
-      const { subjectId } = req.params;
-
-      const assignments = await submissionService.getSubjectAssignments(
-        parseInt(subjectId)
-      );
-
-      res.json(assignments);
-    } catch (error: any) {
-      res.status(500).json({ error: error.message });
-    }
-  }
-}
-
-export const submissionController = new SubmissionController();
+};

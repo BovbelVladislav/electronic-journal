@@ -1,36 +1,21 @@
-import { Request, Response } from "express";
-import { lessonService } from "../services/lessonService";
+import { Request, Response } from 'express';
+import { createLesson } from '../services/lessonService';
 
-import { AppDataSource } from "../database/data-source";
-import { Subject } from "../entities/Subject";
-
-export const lessonController = {
-  async getBySubject(req: Request, res: Response) {
-    const subjectId = Number(req.params.subjectId);
-    const lessons = await lessonService.getBySubject(subjectId);
-    res.json(lessons);
-  },
-
-  async getOne(req: Request, res: Response) {
-    const id = Number(req.params.id);
-    const lesson = await lessonService.getById(id);
-    res.json(lesson);
-  },
-
-  async create(req: Request, res: Response) {
-    const { date, subjectId } = req.body;
-
-    const subject = await AppDataSource.getRepository(Subject).findOneBy({
-      id: subjectId
-    });
-
-    const lesson = await lessonService.create(date, subject!);
-    res.json(lesson);
-  },
-
-  async delete(req: Request, res: Response) {
-    const id = Number(req.params.id);
-    await lessonService.delete(id);
-    res.json({ success: true });
+export const create = async (req: Request, res: Response) => {
+  try {
+    const payload = {
+      subjectId: Number(req.body.subjectId),
+      groupId: Number(req.body.groupId),
+      teacherId: Number(req.body.teacherId),
+      startTime: req.body.startTime,
+      endTime: req.body.endTime,
+      dayOfWeek: req.body.dayOfWeek ? Number(req.body.dayOfWeek) : undefined,
+      room: req.body.room
+    };
+    const lesson = await createLesson(payload);
+    return res.status(201).json(lesson);
+  } catch (err) {
+    console.error('lesson create error', err);
+    return res.status(500).json({ message: 'Internal server error' });
   }
 };

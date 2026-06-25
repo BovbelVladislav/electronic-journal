@@ -1,24 +1,18 @@
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn } from 'typeorm';
 
-@Entity({ name: 'users' })
-export class User {
+@Entity({ name: 'comments' })
+export class Comment {
   @PrimaryGeneratedColumn()
   id!: number;
 
-  @Column({ unique: true })
-  email!: string;
+  @Column()
+  submission_id!: number;
 
   @Column()
-  password_hash!: string;
-
-  @Column()
-  first_name!: string;
-
-  @Column()
-  last_name!: string;
+  author_id!: number;
 
   @Column({ type: 'text' })
-  role!: 'student' | 'teacher' | 'admin';
+  content!: string;
 
   @CreateDateColumn({ type: 'datetime', default: () => 'CURRENT_TIMESTAMP' })
   created_at!: Date;
@@ -26,4 +20,4 @@ export class User {
   @UpdateDateColumn({ type: 'datetime', default: () => 'CURRENT_TIMESTAMP' })
   updated_at!: Date;
 }
-export default User;
+export default Comment;

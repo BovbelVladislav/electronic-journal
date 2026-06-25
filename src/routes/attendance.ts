@@ -1,20 +1,12 @@
 import { Router } from 'express';
-import { attendanceController } from '../controllers/attendanceController';
-import { authMiddleware, roleMiddleware } from '../middleware/authMiddleware.ts';
+import { authMiddleware, roleMiddleware } from '../middleware/authMiddleware';
+import * as attendanceController from '../controllers/attendanceController';
 
 const router = Router();
 
-router.post('/attendance', authMiddleware, roleMiddleware('teacher'), (req, res) =>
-  attendanceController.recordAttendance(req, res)
-);
-router.post('/grade', authMiddleware, roleMiddleware('teacher'), (req, res) =>
-  attendanceController.setGrade(req, res)
-);
-router.get('/student/:studentId', authMiddleware, (req, res) =>
-  attendanceController.getStudentGrades(req, res)
-);
-router.get('/class/:classId/:date', authMiddleware, roleMiddleware('teacher'), (req, res) =>
-  attendanceController.getClassAttendance(req, res)
-);
+// roleMiddleware принимает массив ролей
+router.post('/attendance', authMiddleware, roleMiddleware(['teacher']), attendanceController.markAttendance);
+router.post('/grade', authMiddleware, roleMiddleware(['teacher']), attendanceController.addGrade);
+router.get('/class/:classId/:date', authMiddleware, roleMiddleware(['teacher']), attendanceController.getClassAttendance);
 
 export default router;

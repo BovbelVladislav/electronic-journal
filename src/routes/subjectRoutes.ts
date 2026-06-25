@@ -1,13 +1,10 @@
-import { Router } from "express";
-import { subjectController } from "../controllers/subjectController";
-import { authMiddleware } from "../middleware/authMiddleware";
-
+import { Router } from 'express';
+import { authMiddleware, roleMiddleware } from '../middleware/authMiddleware';
+import * as subjectController from '../controllers/subjectController';
 
 const router = Router();
 
-router.get("/", authMiddleware, subjectController.getMySubjects);
-router.get("/:id", authMiddleware, subjectController.getOne);
-router.post("/", authMiddleware, subjectController.create);
-router.delete("/:id", authMiddleware, subjectController.delete);
+router.post('/', authMiddleware, roleMiddleware(['teacher']), subjectController.createSubject);
+router.get('/', authMiddleware, subjectController.listSubjects);
 
 export default router;
