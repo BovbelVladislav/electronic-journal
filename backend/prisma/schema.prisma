@@ -1,0 +1,155 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id          Int             @id @default(autoincrement())
+  email       String          @unique
+  name        String
+  role        Role
+  password    String
+  createdAt   DateTime        @default(now())
+  subjects    Subject[]       @relation("TeacherSubjects")
+  submissions LabSubmission[]
+  attendances Attendance[]
+  comments    Comment[]
+  teams       Team[]          @relation("TeamMembers")
+  grades      Grade[]
+}
+
+enum Role {
+  STUDENT
+  TEACHER
+  ADMIN
+}
+
+model Subject {
+  id        Int      @id @default(autoincrement())
+  title     String
+  code      String   @unique
+  teacherId Int?
+  teacher   User?    @relation("TeacherSubjects", fields: [teacherId], references: [id])
+  lessons   Lesson[]
+  labs      Lab[]
+  grades    Grade[]
+}
+
+model Lesson {
+  id          Int          @id @default(autoincrement())
+  subject     Subject      @relation(fields: [subjectId], references: [id])
+  subjectId   Int
+  date        DateTime
+  startTime   DateTime
+  endTime     DateTime
+  type        LessonType
+  attendances Attendance[]
+}
+
+enum LessonType {
+  LECTURE
+  LAB
+  PRACTICE
+  TEST
+}
+
+model Attendance {
+  id        Int              @id @default(autoincrement())
+  lesson    Lesson           @relation(fields: [lessonId], references: [id])
+  lessonId  Int
+  student   User             @relation(fields: [studentId], references: [id])
+  studentId Int
+  status    AttendanceStatus
+  late      Boolean          @default(false)
+  note      String?
+
+  @@unique([lessonId, studentId])
+}
+
+enum AttendanceStatus {
+  PRESENT
+  ABSENT
+  EXCUSED
+}
+
+model Grade {
+  id           Int            @id @default(autoincrement())
+  student      User           @relation(fields: [studentId], references: [id])
+  studentId    Int
+  subject      Subject        @relation(fields: [subjectId], references: [id])
+  subjectId    Int
+  value        Float
+  type         GradeType
+  date         DateTime       @default(now())
+  comment      String?
+  submissionId Int?           @unique
+  submission   LabSubmission? @relation("SubmissionGrade", fields: [submissionId], references: [id])
+}
+
+enum GradeType {
+  LAB
+  TEST
+  PRACTICAL
+  ORAL
+}
+
+model Lab {
+  id          Int             @id @default(autoincrement())
+  subject     Subject         @relation(fields: [subjectId], references: [id])
+  subjectId   Int
+  title       String
+  description String?
+  issuedAt    DateTime        @default(now())
+  deadline    DateTime?
+  teamWork    Boolean         @default(false)
+  teams       Team[]
+  submissions LabSubmission[]
+}
+
+model Team {
+  id          Int             @id @default(autoincrement())
+  lab         Lab             @relation(fields: [labId], references: [id])
+  labId       Int
+  name        String
+  members     User[]          @relation("TeamMembers")
+  submissions LabSubmission[]
+}
+
+model LabSubmission {
+  id          Int       @id @default(autoincrement())
+  lab         Lab       @relation(fields: [labId], references: [id])
+  labId       Int
+  student     User?     @relation(fields: [studentId], references: [id])
+  studentId   Int?
+  team        Team?     @relation(fields: [teamId], references: [id])
+  teamId      Int?
+  submittedAt DateTime  @default(now())
+  files       File[]
+  grade       Grade?    @relation("SubmissionGrade")
+  comments    Comment[]
+}
+
+model File {
+  id           Int            @id @default(autoincrement())
+  filename     String
+  path         String
+  mime         String
+  size         Int
+  uploadedAt   DateTime       @default(now())
+  submission   LabSubmission? @relation(fields: [submissionId], references: [id])
+  submissionId Int?
+}
+
+model Comment {
+  id           Int            @id @default(autoincrement())
+  author       User           @relation(fields: [authorId], references: [id])
+  authorId     Int
+  text         String
+  createdAt    DateTime       @default(now())
+  submission   LabSubmission? @relation(fields: [submissionId], references: [id])
+  submissionId Int?
+}
